@@ -52,7 +52,6 @@ type tun struct {
 func (f *tunTapF) NewTun(addr net.IP, network net.IP, mask net.IP) (Tun, error) {
 	componentId := DEVICE_COMPONENT_ID
 	netCfgInstanceId, err := getTuntapComponentId(componentId)
-	fmt.Println("get ", netCfgInstanceId, "err:", err)
 	if err != nil {
 
 		err = f.newTunDevice(componentId)
@@ -60,7 +59,6 @@ func (f *tunTapF) NewTun(addr net.IP, network net.IP, mask net.IP) (Tun, error) 
 			return nil, err
 		}
 		for i := 0; i < 10; i++ {
-			fmt.Println("i:", i)
 			netCfgInstanceId, err = getTuntapComponentId(componentId)
 			if err == nil {
 				break
@@ -185,8 +183,6 @@ func (f *tunTapF) newTunDevice(componentId string) error {
 	if err != nil {
 		return err
 	}
-
-	fmt.Println(batPath)
 
 	cmd := exec.Command("cmd.exe", "/C", batPath)
 	cmd.Dir = filepath.Dir(batPath)
