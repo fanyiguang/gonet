@@ -2,9 +2,9 @@ package tuntap
 
 import (
 	"fmt"
-	"io"
 	"net"
 	"os/exec"
+	"sync"
 	"syscall"
 
 	"path/filepath"
@@ -41,15 +41,27 @@ var TAP_IOCTL_SET_MEDIA_STATUS = TAP_CONTROL_CODE(6, 0)
 var TAP_IOCTL_CONFIG_TUN = TAP_CONTROL_CODE(10, 0)
 
 type tun struct {
-	handle              syscall.Handle
-	device              io.ReadWriteCloser
-	netCfgInstanceId    string // {36961F56-38A5-49CB-8409-B0C9C0D1119D}
-	name                string //以太网 3
-	writeChan, readChan chan []byte
-	closeChan           chan int
+	handle           windows.Handle
+	netCfgInstanceId string // {36961F56-38A5-49CB-8409-B0C9C0D1119D}
+	name             string //以太网 3
+	overlappedWx     windows.Overlapped
+	rm               sync.Mutex
+	overlappedRx     windows.Overlapped
+	wm               sync.Mutex
 }
 
 func (f *tunTapF) NewTun(addr net.IP, network net.IP, mask net.IP) (Tun, error) {
+
+	rHevent, err := windows.CreateEvent(nil, 0, 0, nil)
+	if err != nil {
+		return nil, fmt.Errorf("CreateEvent:%v", err)
+	}
+
+	wHevent, err := windows.CreateEvent(nil, 0, 0, nil)
+	if err != nil {
+		return nil, fmt.Errorf("CreateEvent:%v", err)
+	}
+
 	componentId := DEVICE_COMPONENT_ID
 	netCfgInstanceId, err := getTuntapComponentId(componentId)
 	if err != nil {
@@ -87,15 +99,15 @@ func (f *tunTapF) NewTun(addr net.IP, network net.IP, mask net.IP) (Tun, error) 
 	}
 
 	path := fmt.Sprintf(`\\.\Global\%s.tap`, netCfgInstanceId)
-	dpath := syscall.StringToUTF16(path)
+	dpath := windows.StringToUTF16(path)
 
-	tap, err := syscall.CreateFile(
+	tap, err := windows.CreateFile(
 		&dpath[0],
-		syscall.GENERIC_READ|syscall.GENERIC_WRITE,
-		syscall.FILE_SHARE_READ|syscall.FILE_SHARE_WRITE,
+		windows.GENERIC_READ|windows.GENERIC_WRITE,
+		windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE,
 		nil,
-		syscall.OPEN_EXISTING,
-		syscall.FILE_ATTRIBUTE_SYSTEM|syscall.FILE_FLAG_OVERLAPPED,
+		windows.OPEN_EXISTING,
+		windows.FILE_ATTRIBUTE_SYSTEM|windows.FILE_FLAG_OVERLAPPED,
 		0)
 
 	if err != nil {
@@ -107,7 +119,7 @@ func (f *tunTapF) NewTun(addr net.IP, network net.IP, mask net.IP) (Tun, error) 
 	configTunParam = append(configTunParam, mask.To4()...)
 
 	// 配置ip后是 TAP 设备。
-	if err = syscall.DeviceIoControl(
+	if err = windows.DeviceIoControl(
 		tap,
 		TAP_IOCTL_CONFIG_TUN,
 		&configTunParam[0],
@@ -125,7 +137,7 @@ func (f *tunTapF) NewTun(addr net.IP, network net.IP, mask net.IP) (Tun, error) 
 	}
 
 	inBuffer := []byte{0x01, 0x00, 0x00, 0x00}
-	if err = syscall.DeviceIoControl(
+	if err = windows.DeviceIoControl(
 		tap,
 		TAP_IOCTL_SET_MEDIA_STATUS,
 		&inBuffer[0],
@@ -146,10 +158,10 @@ func (f *tunTapF) NewTun(addr net.IP, network net.IP, mask net.IP) (Tun, error) 
 		//	device:           device,
 		name:             name,
 		netCfgInstanceId: netCfgInstanceId,
-		writeChan:        make(chan []byte, 100),
-		readChan:         make(chan []byte, 10),
-		closeChan:        make(chan int),
 	}
+
+	t.overlappedRx.HEvent = rHevent
+	t.overlappedWx.HEvent = wHevent
 
 	return &t, nil
 }
@@ -242,7 +254,7 @@ func matchKey(zones registry.Key, keyName string, componentId string) (string, e
 
 func getTunTapName(netCfgInstanceId string) (string, error) {
 	path := fmt.Sprintf("%s\\%s\\Connection", NETWORK_KEY, netCfgInstanceId)
-	k, err := registry.OpenKey(syscall.HKEY_LOCAL_MACHINE, path, registry.READ)
+	k, err := registry.OpenKey(windows.HKEY_LOCAL_MACHINE, path, registry.READ)
 	if err != nil {
 		return "", fmt.Errorf("OpenKey(%s):%s", path, err)
 	}
@@ -318,114 +330,40 @@ func (f *tunTapF) Remove() error {
 	return nil
 }
 
-func (t *tun) Server() error {
-	defer t.Close()
-
-	errChan := make(chan error, 10)
-	go func() {
-		errChan <- t.loop_write()
-	}()
-	go func() {
-		errChan <- t.loop_read()
-	}()
-
-	return <-errChan
-}
-
-func (t *tun) loop_write() error {
-	overlappedWx := syscall.Overlapped{}
-	var hevent windows.Handle
-	hevent, err := windows.CreateEvent(nil, 0, 0, nil)
-	if err != nil {
-		return fmt.Errorf("windows.CreateEvent : %v", err)
-	}
-	overlappedWx.HEvent = syscall.Handle(hevent)
+func (t *tun) Read(buf []byte) (int, error) {
 	var l uint32
-	for {
-		select {
-		case <-t.closeChan:
-			return fmt.Errorf("主动关闭")
-		case buf := <-t.writeChan:
-			l = uint32(len(buf))
+	t.rm.Lock()
+	defer t.rm.Unlock()
+	t.overlappedRx.InternalHigh = 0
 
-			syscall.WriteFile(t.handle, buf, &l, &overlappedWx)
-			if _, err := syscall.WaitForSingleObject(overlappedWx.HEvent, syscall.INFINITE); err != nil {
-				return fmt.Errorf("Wait WriteFile:%v", err)
-			}
-		}
+	windows.ReadFile(t.handle, buf, &l, &t.overlappedRx)
+	if _, err := windows.WaitForSingleObject(t.overlappedRx.HEvent, windows.INFINITE); err != nil {
+		return int(uint(t.overlappedRx.InternalHigh)), fmt.Errorf("Wait ReadFile:%v", err)
 	}
+	return int(uint(t.overlappedRx.InternalHigh)), nil
 }
 
-func (t *tun) WritePack(data []byte) error {
-	t.writeChan <- data
-	return nil
-}
+func (t *tun) Write(buf []byte) (int, error) {
+	l := uint32(len(buf))
+	// 如果移除锁，1W 次写入速度能由 314ms 降低到 265ms 。
+	// 但是多线程会直接完蛋。
+	t.wm.Lock()
+	defer t.wm.Unlock()
 
-func (t *tun) GetWriteChan() chan []byte {
-	return t.writeChan
-}
-
-func (t *tun) loop_read() error {
-	overlappedRx := syscall.Overlapped{}
-	var hevent windows.Handle
-	hevent, err := windows.CreateEvent(nil, 0, 0, nil)
-	if err != nil {
-		return fmt.Errorf("CreateEvent:%v", err)
+	windows.WriteFile(t.handle, buf, &l, &t.overlappedWx)
+	if _, err := windows.WaitForSingleObject(t.overlappedWx.HEvent, windows.INFINITE); err != nil {
+		return 0, fmt.Errorf("Wait WriteFile:%v", err)
 	}
-	overlappedRx.HEvent = syscall.Handle(hevent)
-	var l uint32
-	for {
-		select {
-		case <-t.closeChan:
-			return fmt.Errorf("主动关闭")
-		default:
-		}
-
-		buf := make([]byte, 2048)
-
-		syscall.ReadFile(t.handle, buf, &l, &overlappedRx)
-		if _, err := syscall.WaitForSingleObject(overlappedRx.HEvent, syscall.INFINITE); err != nil {
-			return fmt.Errorf("Wait ReadFile:%v", err)
-		}
-
-		totalLen := overlappedRx.InternalHigh
-
-		t.readChan <- buf[:totalLen]
-	}
+	return int(l), nil
 }
-func (t *tun) ReadPack() ([]byte, error) {
-	b := <-t.readChan
-	return b, nil
-}
-
-func (t *tun) GetReadChan() chan []byte {
-	return t.readChan
-}
-
-/*
-func (t *tun) writePack(data []byte) error {
-	defer mypprof.LogFuncTime("tun.writePack", "", time.Now(), int64(1*time.Second))
-	_, err := t.device.Write(data)
-	t.printRead.PrintTapPack(data)
-	return err
-}*/
 
 func (t *tun) GetName() string {
 	return t.name
 }
 
 func (t *tun) Close() error {
-	select {
-	case <-t.closeChan:
-		return fmt.Errorf("已经关闭")
-	default:
-	}
-	func() {
-		defer func() { recover() }()
-		close(t.closeChan)
-	}()
 	//	return t.device.Close()
-	return syscall.CloseHandle(t.handle)
+	return windows.CloseHandle(t.handle)
 }
 
 func cmdRun(cmd string) error {

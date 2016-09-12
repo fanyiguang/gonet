@@ -9,8 +9,6 @@ import (
 	"strings"
 	"syscall"
 	"unsafe"
-
-	"github.com/gamexg/gotool/mem"
 )
 
 const (
@@ -95,21 +93,12 @@ func (t *tun) Close() error {
 	return t.Close()
 }
 
-func (t *tun) WritePack(data []byte) error {
-	if _, err := t.fd.Write(data); err != nil {
-		return err
-	} else {
-		return nil
-	}
+func (t *tun) Write(buf []byte) (int, error) {
+	return t.fd.Write(buf)
 }
 
-func (t *tun) ReadPack() ([]byte, error) {
-	buf := mem.Get(2000)
-	if n, err := t.fd.Read(buf); err != nil {
-		return nil, err
-	} else {
-		return buf[:n], nil
-	}
+func (t *tun) Read(buf []byte) (int, error) {
+	return t.fd.Read(buf)
 }
 
 func (t *tun) SetDns(ip []net.IP) error {
