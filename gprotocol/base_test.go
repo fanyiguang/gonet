@@ -274,3 +274,39 @@ func TestString(t *testing.T) {
 	}
 
 }
+
+func TestBytes(t *testing.T) {
+	b := make([]byte, 0)
+	defer func() {
+		r := recover()
+		if r != nil {
+			t.Error(r)
+		}
+	}()
+
+	Write2Bytes(&b, []byte("0123abc"))
+	s := Read2Bytes(&b)
+
+	if string(s) != "0123abc" {
+		t.Fatalf("")
+	}
+	if len(b) != 0 {
+		t.Fatalf("")
+	}
+
+	Write2Bytes(&b, []byte("0123abc"))
+	Write2Bytes(&b, []byte("456def789"))
+	s = Read2Bytes(&b)
+
+	if string(s) != "0123abc" {
+		t.Fatalf("")
+	}
+	s = Read2Bytes(&b)
+	if string(s) != "456def789" {
+		t.Fatalf("")
+	}
+	if len(b) != 0 {
+		t.Fatalf("")
+	}
+
+}

@@ -100,3 +100,29 @@ func Write2String(b *[]byte, v string) {
 	WriteUint16(b, uint16(len(v)))
 	*b = append(*b, []byte(v)...)
 }
+
+//警告，直接返回的 b 的切片，如果b会被修改请自己拷贝一份副本。
+func Read2BytesUsafe(b *[]byte) (s []byte) {
+
+	l := ReadUint16(b)
+	if int(l) > len(*b) {
+		panic(fmt.Errorf("长度不足。"))
+	}
+	s = (*b)[:l]
+	*b = (*b)[l:]
+	return s
+}
+func Read2Bytes(b *[]byte) (s []byte) {
+	ob := Read2BytesUsafe(b)
+	nb := make([]byte, len(ob))
+	copy(nb, ob)
+	return nb
+}
+
+func Write2Bytes(b *[]byte, v []byte) {
+	if len(v) > 0xFFFF {
+		panic("字符串超出允许长度。")
+	}
+	WriteUint16(b, uint16(len(v)))
+	*b = append(*b, v...)
+}
