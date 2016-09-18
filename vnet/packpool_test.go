@@ -20,15 +20,20 @@ func TestPack(t *testing.T) {
 		t.Error("len(p.GetAllData())=", len(p.GetAllData()))
 	}
 
-	pd := p.GetPrefixData()
+	pd := p.GetPackData()
 	for i, _ := range pd {
 		pd[i] = 123
 	}
 
-	for _, v := range p.GetPackData() {
+	for _, v := range p.GetPrefixData() {
 		if v == 123 {
 			t.Error(v)
 		}
+	}
+
+	pd = p.GetPrefixData()
+	for i, _ := range pd {
+		pd[i] = 111
 	}
 
 	p.SetPackLength(110)
@@ -45,7 +50,13 @@ func TestPack(t *testing.T) {
 
 	p.Free()
 	p2 := pool.Malloc()
-	if !bytes.Equal(p2.GetPrefixData(), p.GetPrefixData()) {
+	for _, v := range p2.GetPrefixData() {
+		if v != 0 {
+			t.Error(v)
+		}
+	}
+
+	if !bytes.Equal(p2.GetPackData(), p.GetPackData()) {
 		t.Error("p!=p2")
 	}
 	if len(p.GetPrefixData()) != 10 {

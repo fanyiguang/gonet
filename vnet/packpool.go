@@ -77,6 +77,10 @@ func (p *pack) GetPackLayer() PackLayer {
 
 func (p *pack) Reset() {
 	p.packDataSize = len(p.data) - p.prefixSize
+	pd := p.GetPrefixData()
+	for i, _ := range pd {
+		pd[i] = 0
+	}
 }
 
 func newPack(data []byte, prefixSize int, packLayer PackLayer, free Freer) Pack {
