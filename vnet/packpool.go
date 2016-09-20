@@ -35,7 +35,7 @@ type Pack interface {
 
 	GetPackLayer() PackLayer
 
-	// 非拷贝副本
+	// 不安全，非拷贝副本
 	GetIP() (net.IP, net.IP, error)
 	GetPort() (int, int, error)
 }
