@@ -63,3 +63,12 @@ func ReadPType(r io.Reader) (byte, error) {
 	}
 	return ptype, nil
 }
+
+func ReadPackTypeAndLength(r io.Reader) (byte, uint16, error) {
+	var lb [3]byte
+	if _, err := io.ReadFull(r, lb[:]); err != nil {
+		return 0, 0, err
+	}
+
+	return lb[0], binary.BigEndian.Uint16(lb[:]), nil
+}
