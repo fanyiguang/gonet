@@ -2,13 +2,17 @@ package route
 
 import (
 	"net"
-
 )
 
 type Route struct {
 	Network net.IP
 	Mask    byte
 }
+
+func (r *Route) GetIpv4Mask() net.IP {
+	return net.IP(net.CIDRMask(int(r.Mask), 32))
+}
+
 type RouteTable interface {
 	// 增加 Net 路由表
 	// Net 路由表指的是走非 VPN 的路由表
