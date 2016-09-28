@@ -57,11 +57,9 @@ func TestAll(t *testing.T) {
 	defer tap.Close()
 	//defer f.Remove()
 
-	go tap.Server()
-
 	func() {
 		buf := make([]byte, 1024)
-		err := tap.WritePack(buf)
+		_, err := tap.Write(buf)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -73,7 +71,7 @@ func TestAll(t *testing.T) {
 		buf := make([]byte, 1024)
 		sTime := time.Now()
 		for i := 0; i < 10000; i++ {
-			err := tap.WritePack(buf)
+			_, err := tap.Write(buf)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -90,7 +88,7 @@ func TestAll(t *testing.T) {
 		for i := 0; i < 10000; i++ {
 			go func() {
 				defer wg.Done()
-				err := tap.WritePack(buf)
+				_, err := tap.Write(buf)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -141,12 +139,13 @@ func TestRead(t *testing.T) {
 	}()
 
 	go func() {
+		buf := make([]byte, 2000)
 		for i := 0; i < 1000; i++ {
 			sTime := time.Now()
-			if buf, err := tap.ReadPack(); err != nil {
+			if n, err := tap.Read(buf); err != nil {
 				fmt.Println(err)
 			} else {
-				mem.Put(buf)
+				mem.Put(buf[:n])
 			}
 			eTime := time.Now()
 			fmt.Printf("读取 udp 包耗时：%v\r\n", eTime.Sub(sTime))

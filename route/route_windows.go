@@ -144,7 +144,7 @@ func (rt *routeTable) delRoute(rr *RouteRow) error {
 	return nil
 }
 
-func (rt *routeTable) AddNetRoutes(routes []protocol.Route) error {
+func (rt *routeTable) AddNetRoutes(routes []Route) error {
 	rs, err := rt.getRoutes()
 	if err != nil {
 		return err
@@ -187,7 +187,7 @@ func (rt *routeTable) AddNetRoutes(routes []protocol.Route) error {
 
 	return nil
 }
-func (rt *routeTable) AddVpnRoutes(routes []protocol.Route, network, mask, gIp net.IP) error {
+func (rt *routeTable) AddVpnRoutes(routes []Route, network, mask, gIp net.IP) error {
 	networkv4 := network.To4()
 	maskv4 := mask.To4()
 	gIpv4 := gIp.To4()
