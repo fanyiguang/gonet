@@ -70,5 +70,5 @@ func ReadPackTypeAndLength(r io.Reader) (byte, uint16, error) {
 		return 0, 0, err
 	}
 
-	return lb[0], binary.BigEndian.Uint16(lb[:]), nil
+	return lb[0], binary.BigEndian.Uint16(lb[1:3]), nil
 }
