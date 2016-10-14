@@ -6,7 +6,7 @@ import (
 	"net"
 )
 
-const MaxPackSize = 1500
+const MaxPackSize = 2000
 
 type PackLayer int
 
