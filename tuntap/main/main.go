@@ -26,19 +26,19 @@ func main() {
 
 	buf := make([]byte, 1024)
 	for i := 0; i < 10; i++ {
-		err := tap.WritePack(buf)
+		_, err := tap.Write(buf)
 		if err != nil {
 			panic(err)
 		}
 	}
-
-	for i := 0; i < 10; i++ {
-		b, err := tap.ReadPack()
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println(b)
-	}
+	/*
+		for i := 0; i < 10; i++ {
+			b, err := tap.Read()
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println(b)
+		}*/
 
 	fmt.Println("sleep")
 	time.Sleep(30 * time.Second)

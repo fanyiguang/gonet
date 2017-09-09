@@ -23,20 +23,21 @@ func main() {
 	}
 	defer tap.Close()
 
-	go tap.Server()
-
 	go func() {
-		for buf := range tap.GetReadChan() {
-			fmt.Println(buf)
+		b := make([]byte, 2048)
+		for {
+			_, err := tap.Read(b)
+			if err != nil {
+				panic(err)
+			}
 		}
 	}()
 
 	func() {
-
 		buf := make([]byte, 1024)
 		sTime := time.Now()
 		for i := 0; i < 1000000; i++ {
-			err := tap.WritePack(buf)
+			_, err := tap.Write(buf)
 			if err != nil {
 				panic(err)
 			}
@@ -45,6 +46,27 @@ func main() {
 		fmt.Println("同步写入1000000包耗时：", eTime.Sub(sTime))
 		fmt.Println("平均耗时： ", eTime.Sub(sTime)/1000000)
 	}()
+
+	/*
+		这个是标准异步 WriteFile 速度：
+			同步写入1000000包耗时： 8.9125098s
+			平均耗时：  8.912µs
+
+		另外本来应该是高速的完成端口模型，速度可怜：
+			同步写入10000包耗时： 13.7945879s
+			平均耗时：  1.379458ms
+
+		看起来可能驱动实现有问题造成完成端口基本没法工作。
+		悲剧的我还修复了微软完成端口库无法在 windows xp 下工作的问题。
+
+		另外还有一个选择，即完全阻塞 read 、write 模式。
+		但是 windows 下同步读写是串行模式，即同一时间只允许一个操作，读会阻塞写。
+		参考：https://msdn.microsoft.com/en-us/library/windows/desktop/aa363858(v=vs.85).aspx
+		If this flag is specified, the file can be used for simultaneous read and write operations.
+		If this flag is not specified, then I/O operations are serialized, even if the calls to the read and write functions specify an OVERLAPPED structure.
+
+
+	*/
 
 	time.Sleep(1 * time.Hour)
 }
