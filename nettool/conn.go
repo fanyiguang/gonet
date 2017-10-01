@@ -1,4 +1,4 @@
-package httplog
+package nettool
 
 import (
 	"io"
