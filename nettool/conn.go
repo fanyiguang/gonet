@@ -11,7 +11,7 @@ type Conn struct {
 	w io.WriteCloser
 }
 
-func NewConn(conn net.Conn, r io.ReadCloser, w io.WriteCloser) *net.Conn {
+func NewConn(conn net.Conn, r io.ReadCloser, w io.WriteCloser) net.Conn {
 	return &Conn{
 		Conn: conn,
 		r:    r,
