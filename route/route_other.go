@@ -1,3 +1,4 @@
+//go:build !windows
 // +build !windows
 
 package route
@@ -5,7 +6,6 @@ package route
 import (
 	"fmt"
 	"net"
-
 )
 
 type routeTable struct {
@@ -24,4 +24,8 @@ func (rt *routeTable) AddVpnRoutes(routes []Route, network, mask, gIp net.IP) er
 
 func (rt *routeTable) ResetRoute() error {
 	return fmt.Errorf("当前系统不支持此功能。")
+}
+
+func (rt *routeTable) ResetRoute() ([]RouteRow, error) {
+	return nil, fmt.Errorf("当前系统不支持此功能。")
 }

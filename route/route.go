@@ -33,4 +33,6 @@ type RouteTable interface {
 	// 清洗路由表，删除所有非本地接口、非默认网关的路由条目、跃点数为X的路由条目...
 	// 感觉这个实现并不好。
 	ResetRoute() error
+
+	GetRoutes() ([]RouteRow, error)
 }
