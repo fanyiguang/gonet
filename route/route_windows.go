@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package route
@@ -8,8 +9,6 @@ import (
 	"net"
 	"syscall"
 	"unsafe"
-
-	log "github.com/gamexg/log4go"
 )
 
 /*
@@ -84,7 +83,7 @@ func NewRouteTable() RouteTable {
 	}
 }
 
-func (rt *routeTable) getRoutes() ([]RouteRow, error) {
+func (rt *routeTable) GetRoutes() ([]RouteRow, error) {
 	buf := make([]byte, 4+unsafe.Sizeof(RouteRow{}))
 	buf_len := uint32(len(buf))
 
@@ -145,7 +144,7 @@ func (rt *routeTable) delRoute(rr *RouteRow) error {
 }
 
 func (rt *routeTable) AddNetRoutes(routes []Route) error {
-	rs, err := rt.getRoutes()
+	rs, err := rt.GetRoutes()
 	if err != nil {
 		return err
 	}
@@ -195,14 +194,13 @@ func (rt *routeTable) AddVpnRoutes(routes []Route, network, mask, gIp net.IP) er
 		return fmt.Errorf("network:%v,mask:%v,gIp:%v 不是 Ipv4地址。", networkv4, maskv4, gIpv4)
 	}
 
-	rs, err := rt.getRoutes()
+	rs, err := rt.GetRoutes()
 	if err != nil {
 		return err
 	}
 
 	var vpnRoute *RouteRow
 	for _, r := range rs {
-		log.Debug("ForwardType:", r.ForwardType, "ForwardProto:", r.ForwardProto, "network:", r.GetForwardDest(), "mask:", r.GetForwardMask(), "g:", r.GetForwardNextHop())
 		if r.ForwardType == 3 && //r.ForwardProto == 3 &&
 			r.GetForwardDest().Equal(networkv4) && r.GetForwardMask().Equal(maskv4) {
 			t := r
@@ -265,7 +263,7 @@ func (rt *routeTable) AddVpnRoutes(routes []Route, network, mask, gIp net.IP) er
 }
 
 func (rt *routeTable) ResetRoute() error {
-	rs, err := rt.getRoutes()
+	rs, err := rt.GetRoutes()
 	if err != nil {
 		return err
 	}

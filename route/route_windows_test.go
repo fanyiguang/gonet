@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package route
@@ -11,7 +12,7 @@ import (
 func TestRouteTableRoutes(t *testing.T) {
 	rt := NewRouteTable()
 	rT := rt.(*routeTable)
-	rs, err := rT.getRoutes()
+	rs, err := rT.GetRoutes()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +43,7 @@ func TestAddRouteAndDelRoute(t *testing.T) {
 		t.Errorf("复位路由表失败，%v", err)
 	}
 
-	rs, err := rT.getRoutes()
+	rs, err := rT.GetRoutes()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +82,7 @@ func TestAddRouteAndDelRoute(t *testing.T) {
 	}
 
 	// 检查是否者增加成功
-	rs, err = rT.getRoutes()
+	rs, err = rT.GetRoutes()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +103,7 @@ func TestAddRouteAndDelRoute(t *testing.T) {
 	}
 
 	//测试是否已经不存在
-	rs, err = rT.getRoutes()
+	rs, err = rT.GetRoutes()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +128,7 @@ func TestAddNetRoutesAndResetRoutes(t *testing.T) {
 		t.Errorf("复位路由表失败，%v", err)
 	}
 
-	rs, err := rT.getRoutes()
+	rs, err := rT.GetRoutes()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,7 +161,7 @@ func TestAddNetRoutesAndResetRoutes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rs, err = rT.getRoutes()
+	rs, err = rT.GetRoutes()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,7 +195,7 @@ func TestAddNetRoutesAndResetRoutes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rs, err = rT.getRoutes()
+	rs, err = rT.GetRoutes()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -225,7 +226,7 @@ func TestAddVpnRoutesAndResetRoutes(t *testing.T) {
 		t.Errorf("复位路由表失败，%v", err)
 	}
 
-	rs, err := rT.getRoutes()
+	rs, err := rT.GetRoutes()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -249,7 +250,7 @@ func TestAddVpnRoutesAndResetRoutes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rs, err = rT.getRoutes()
+	rs, err = rT.GetRoutes()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -301,7 +302,7 @@ func TestAddVpnRoutesAndResetRoutes(t *testing.T) {
 		t.Error(err)
 	}
 
-	rs, err = rT.getRoutes()
+	rs, err = rT.GetRoutes()
 	if err != nil {
 		t.Fatal(err)
 	}

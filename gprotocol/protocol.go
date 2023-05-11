@@ -3,8 +3,6 @@ package gprotocol
 import (
 	"encoding/binary"
 	"io"
-
-	"bitbucket.org/jack/jackproxy/common/mem"
 )
 
 /*
@@ -38,23 +36,23 @@ func ReadPackLength(r io.Reader) (uint16, error) {
 	return binary.BigEndian.Uint16(lb[:]), nil
 }
 
-func ReadPack(r io.Reader) ([]byte, error) {
-	l, err := ReadPackLength(r)
-	if err != nil {
-		return nil, err
-	}
-	buf := mem.Get(int(l))
-
-	if n, err := io.ReadFull(r, buf); err != nil {
-		return buf[:n], err
-	}
-
-	return buf, nil
-}
-
-func FreePack(buf []byte) {
-	mem.Put(buf)
-}
+//func ReadPack(r io.Reader) ([]byte, error) {
+//	l, err := ReadPackLength(r)
+//	if err != nil {
+//		return nil, err
+//	}
+//	buf := mem.Get(int(l))
+//
+//	if n, err := io.ReadFull(r, buf); err != nil {
+//		return buf[:n], err
+//	}
+//
+//	return buf, nil
+//}
+//
+//func FreePack(buf []byte) {
+//	mem.Put(buf)
+//}
 
 func ReadPType(r io.Reader) (byte, error) {
 	var ptype byte
